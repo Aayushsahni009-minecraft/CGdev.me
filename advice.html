@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advice &amp; Dev Tips | Command God Studio</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+
+  <header>
+    <div class="nav-container">
+      <a href="index.html" class="brand">
+        <span class="logo-badge">CG</span>
+        <span>Command God Studio</span>
+      </a>
+      <nav class="nav-links" style="align-items: center;">
+        <a href="index.html#projects">Projects</a>
+        <a href="advice.html" style="color: var(--text);">Advice</a>
+
+        <!-- Shown when logged OUT -->
+        <button id="authBtn" class="btn btn-secondary" style="padding: 0.4rem 0.9rem; font-size: 0.85rem;">
+          Sign In
+        </button>
+
+        <!-- Shown when logged IN (Profile/Gmail Icon + Hover Dropdown) -->
+        <div id="profileMenu" class="profile-dropdown" style="display: none;">
+          <button class="profile-trigger" aria-label="Account menu">
+            <img id="userAvatar" src="" alt="Profile" class="profile-avatar" />
+            <!-- Gmail / Google badge icon -->
+            <span class="gmail-badge" title="Signed in with Google">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+                <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4.2-8 5-8-5V6l8 5 8-5v2.2z"/>
+              </svg>
+            </span>
+          </button>
+
+          <div class="dropdown-menu">
+            <div class="dropdown-header">
+              <strong id="dropdownName">User</strong>
+              <span id="dropdownEmail">user@gmail.com</span>
+            </div>
+            <div class="dropdown-divider"></div>
+            <button id="signOutBtn" class="dropdown-item danger">Sign Out</button>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- PRIVATE ADMIN INBOX (Only visible when YOUR admin email logs in) -->
+    <section id="adminInbox" class="admin-inbox" style="display: none;">
+      <div class="card-header">
+        <h2 class="section-title" style="margin-bottom: 0;">Admin Notifications Inbox</h2>
+        <span class="status-pill" id="msgCount">0 Messages</span>
+      </div>
+      <p class="section-subtitle" style="margin-top: 0.25rem;">
+        Messages submitted by signed-in visitors.
+      </p>
+      <div id="messagesList" class="messages-list"></div>
+    </section>
+
+    <section class="hero" style="margin-bottom: 3.5rem;">
+      <span class="tag">CGdev.me • Knowledge Base</span>
+      <h1>Dev &amp; Command Advice</h1>
+      <p>
+        Practical lessons from building Android utilities, Minecraft tools, and web apps.
+      </p>
+    </section>
+
+    <!-- Studio Tips -->
+    <section>
+      <h2 class="section-title">Studio Tips</h2>
+      <div class="advice-grid">
+        <article class="advice-card">
+          <span class="advice-badge">App Dev</span>
+          <h3>Ship the MVP First</h3>
+          <p>
+            Don't wait until every feature is polished. Get a working version in users' hands early—real feedback beats guessing every single time.
+          </p>
+        </article>
+
+        <article class="advice-card">
+          <span class="advice-badge">Minecraft</span>
+          <h3>Keep Commands Modular</h3>
+          <p>
+            Break complex command chains into smaller, reusable functions. It makes debugging ten times faster when something breaks.
+          </p>
+        </article>
+
+        <article class="advice-card">
+          <span class="advice-badge">UI / UX</span>
+          <h3>Design for Thumbs</h3>
+          <p>
+            When building mobile controllers or Android utilities, keep primary buttons within easy reach and give clear visual feedback on every tap.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Ask / Submit Advice Form -->
+    <section class="advice-form-section">
+      <h2 class="section-title">Ask for Advice or Share a Tip</h2>
+      <p class="section-subtitle">
+        Sign in to send a message directly to Command God Studio.
+      </p>
+
+      <!-- Shown when user is NOT logged in -->
+      <div id="loginPrompt" class="advice-form" style="text-align: center;">
+        <p style="color: var(--muted); margin-bottom: 1.25rem;">
+          You must sign in with an account to submit a question or tip.
+        </p>
+        <button id="loginCardBtn" class="btn btn-primary" style="border: none;">
+          Sign in with Google
+        </button>
+      </div>
+
+      <!-- Shown ONLY when user IS logged in -->
+      <form class="advice-form" id="adviceForm" style="display: none;">
+        <div class="user-banner">
+          <span>Signed in as <strong id="userDisplay"></strong></span>
+        </div>
+
+        <div class="form-group">
+          <label for="topic">Topic</label>
+          <select id="topic" name="topic">
+            <option value="Android Dev">Android Development</option>
+            <option value="Minecraft Commands">Minecraft Commands</option>
+            <option value="Web Tools">Web Tools</option>
+            <option value="Project Feedback">Project Feedback</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="message">Your Question or Advice</label>
+          <textarea id="message" name="message" rows="4" placeholder="Write your question or tip here..." required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="border: none;">Send to Studio</button>
+        <p id="formStatus" class="form-status"></p>
+      </form>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Command God Studio (CGdev.me) &bull; Built by Aayush (Command God2081)</p>
+  </footer>
+  <!-- Firebase SDK & App Logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp , deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDMY1u6xSqojLABmZhmujqyy0F5j62PjkQ",
+      authDomain: "cgdev-studio.firebaseapp.com",
+      projectId: "cgdev-studio",
+      storageBucket: "cgdev-studio.firebasestorage.app",
+      messagingSenderId: "514257621758",
+      appId: "1:514257621758:web:0ab58b0e4b944685aa8baf",
+      measurementId: "G-5GF56NP934"
+    };
+
+    // Your Admin Email
+    const ADMIN_EMAIL = "aayushsahni009@gmail.com";
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    const authBtn = document.getElementById("authBtn");
+    const profileMenu = document.getElementById("profileMenu");
+    const userAvatar = document.getElementById("userAvatar");
+    const dropdownName = document.getElementById("dropdownName");
+    const dropdownEmail = document.getElementById("dropdownEmail");
+    const signOutBtn = document.getElementById("signOutBtn");
+    const loginCardBtn = document.getElementById("loginCardBtn");
+    const loginPrompt = document.getElementById("loginPrompt");
+    const adviceForm = document.getElementById("adviceForm");
+    const userDisplay = document.getElementById("userDisplay");
+    const adminInbox = document.getElementById("adminInbox");
+    const messagesList = document.getElementById("messagesList");
+    const msgCount = document.getElementById("msgCount");
+
+    // Handle Sign In / Sign Out
+    const handleLogin = () => signInWithPopup(auth, provider).catch(err => alert(err.message));
+    if (loginCardBtn) loginCardBtn.addEventListener("click", handleLogin);
+    authBtn.addEventListener("click", handleLogin);
+    signOutBtn.addEventListener("click", () => signOut(auth));
+
+    // Listen for Auth State Changes
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // Hide Sign In button, show Gmail/Profile Hover Menu
+        authBtn.style.display = "none";
+        profileMenu.style.display = "inline-block";
+
+        // Set Google profile picture (fallback to letter avatar if none)
+        userAvatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || "User")}&background=10b981&color=052e16`;
+        dropdownName.textContent = user.displayName || "Account";
+        dropdownEmail.textContent = user.email;
+
+        if (loginPrompt) loginPrompt.style.display = "none";
+        if (adviceForm) adviceForm.style.display = "block";
+        if (userDisplay) userDisplay.textContent = `${user.displayName} (${user.email})`;
+
+        // Show Admin Inbox if YOU are signed in
+        if (user.email === ADMIN_EMAIL) {
+          adminInbox.style.display = "block";
+          loadAdminNotifications();
+        } else {
+          adminInbox.style.display = "none";
+        }
+      } else {
+        // Show Sign In button, hide Profile Hover Menu
+        authBtn.style.display = "inline-block";
+        profileMenu.style.display = "none";
+
+        if (loginPrompt) loginPrompt.style.display = "block";
+        if (adviceForm) adviceForm.style.display = "none";
+        adminInbox.style.display = "none";
+      }
+    });
+
+    // Listen for Auth State Changes
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        authBtn.textContent = "Sign Out";
+        if (loginPrompt) loginPrompt.style.display = "none";
+        if (adviceForm) adviceForm.style.display = "block";
+        if (userDisplay) userDisplay.textContent = `${user.displayName} (${user.email})`;
+
+        // Show Admin Inbox if YOU are signed in
+        if (user.email === ADMIN_EMAIL) {
+          adminInbox.style.display = "block";
+          loadAdminNotifications();
+        } else {
+          adminInbox.style.display = "none";
+        }
+      } else {
+        authBtn.textContent = "Sign In";
+        if (loginPrompt) loginPrompt.style.display = "block";
+        if (adviceForm) adviceForm.style.display = "none";
+        adminInbox.style.display = "none";
+      }
+    });
+
+    // Submit Message Form
+    if (adviceForm) {
+      adviceForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const status = document.getElementById("formStatus");
+        status.textContent = "Sending...";
+
+        try {
+          await addDoc(collection(db, "advice_messages"), {
+            uid: user.uid,
+            senderName: user.displayName,
+            senderEmail: user.email,
+            topic: document.getElementById("topic").value,
+            message: document.getElementById("message").value,
+            createdAt: serverTimestamp()
+          });
+
+          status.textContent = "Message delivered to Command God Studio!";
+          adviceForm.reset();
+        } catch (error) {
+          status.textContent = "Error sending message: " + error.message;
+        }
+      });
+    }
+
+    // Load Admin Feed with Delete Buttons
+    function loadAdminNotifications() {
+      const q = query(collection(db, "advice_messages"), orderBy("createdAt", "desc"));
+      onSnapshot(q, (snapshot) => {
+        msgCount.textContent = `${snapshot.size} Message${snapshot.size === 1 ? "" : "s"}`;
+        messagesList.innerHTML = "";
+
+        snapshot.forEach((documentSnapshot) => {
+          const data = documentSnapshot.data();
+          const docId = documentSnapshot.id;
+
+          const item = document.createElement("div");
+          item.className = "notification-item";
+          item.innerHTML = `
+            <div class="card-header" style="align-items: flex-start;">
+              <div>
+                <strong>${data.senderName} <span style="color: var(--muted); font-weight: 400;">(${data.senderEmail})</span></strong>
+                <span class="advice-badge" style="margin-left: 0.5rem;">${data.topic}</span>
+              </div>
+              <button class="btn-delete" data-id="${docId}">Delete</button>
+            </div>
+            <p style="color: var(--text); font-size: 0.95rem; margin-top: 0.4rem;">${data.message}</p>
+          `;
+
+          // Handle delete click
+          item.querySelector(".btn-delete").addEventListener("click", async () => {
+            if (confirm("Delete this message?")) {
+              try {
+                await deleteDoc(doc(db, "advice_messages", docId));
+              } catch (error) {
+                alert("Error deleting message: " + error.message);
+              }
+            }
+          });
+
+          messagesList.appendChild(item);
+        });
+      });
+    }
+  </script>
+
+</body>
+</html>
